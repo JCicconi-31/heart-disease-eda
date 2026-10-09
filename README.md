@@ -1,56 +1,67 @@
-# Heart Disease: EDA e Data Cleaning
+# Heart Disease: EDA, Data Cleaning & Classification Modeling
 
-Pulizia ed analisi esplorativa del dataset *Heart Disease*, derivato dallo studio di Cleveland.
-L'obiettivo è capire quanto sono affidabili i dati, correggere le anomalie del campione e vedere quali variabili fisiologiche si associano di più alla variabile target.
+Pipeline completa di pulizia dati, analisi esplorativa e modellazione predittiva basata sul dataset clinico *Heart Disease* (studio di Cleveland).  
+L'obiettivo è duplice: verificare l'integrità del dato eliminando artefatti di campionamento e confrontare modelli di Machine Learning per intercettare pazienti a rischio cardiovascolare, con focus prioritario sulla **Recall clinica (Sensibilità)**.
 
 ---
 
-## Perché questo progetto
+## 📌 Struttura del Progetto
 
-Molti notebook su Kaggle applicano subito un modello al dataset grezzo (1025 record). Basta però un controllo preliminare per accorgersi che il dataset è pieno di righe duplicate: i pazienti unici sono molti meno. Prima di esplorare o modellare, quindi, i dati vanno ripuliti.
+1. **Notebook 01 - EDA & Data Cleaning**:
+   - **Ispezione iniziale**: 1025 record e 13 predittori clinici, assenza di missing value formali.
+   - **Deduplicazione**: rimozione di 723 record duplicati; il campione effettivo scende a 302 pazienti unici.
+   - **Analisi Outlier**: identificazione tramite metodo IQR su colesterolo e pressione sistolica; i valori estremi (fino a 200 mmHg e 564 mg/dl) sono stati preservati perché clinicamente plausibili.
+   - **Analisi di correlazione**: evidenziato il forte potere separatore della risposta allo sforzo (`exang`, `oldpeak`, `thalach`) rispetto a fattori ematici isolati (`chol`, `fbs`).
+   - **Export**: esportazione del dataset pulito in `data/heart_cleaned.csv`.
 
-## Cosa ho fatto
+2. **Notebook 02 - Baseline Classification Models**:
+   - Suddivisione stratificata 80/20 (`stratify=y`) su 302 osservazioni.
+   - Standardizzazione delle feature continue (`StandardScaler`) calcolata rigorosamente solo sul training set per prevenire Data Leakage.
+   - Addestramento e confronto tra tre algoritmi: *Logistic Regression*, *Random Forest* e *K-Nearest Neighbors (KNN)*.
 
-1. **Ispezione iniziale**: dimensioni, tipi di dato, valori mancanti (nessuno).
-2. **Deduplicazione**: rimosse 723 righe duplicate, il campione scende a 302 pazienti unici.
-3. **Outlier**: identificati con il metodo IQR su colesterolo e pressione sistolica, poi valutati caso per caso.
-4. **Analisi bivariata e correlazioni**: quali variabili separano meglio i due gruppi del target.
-5. **Export**: salvataggio del dataset pulito, pronto per la fase di modellazione.
+---
 
-## Risultati principali
+## 📊 Risultati e Confronto Modelli
 
-Dalla matrice di correlazione di Pearson e dai confronti tra i due gruppi emerge questo (le correlazioni sono rispetto a `target`, dove 1 è la classe positiva del dataset):
+### Prestazioni sul Test Set (20% del campione)
 
-- **`exang` (angina da sforzo), r = -0.44**: chi non ha angina da sforzo ha molto più spesso `target = 1`.
-- **`oldpeak` (depressione del tratto ST), r = -0.43**: mediana 0.0 nel gruppo `target = 1`, circa 1.0 nell'altro.
-- **`thalach` (frequenza cardiaca massima), r = +0.42**: mediana di circa 153-155 bpm nel gruppo `target = 1`, circa 142 bpm nell'altro.
-- **`cp` (tipo di dolore toracico), r = +0.43**: i dolori atipici e non anginosi sono più frequenti nel gruppo `target = 1` rispetto al dolore tipico.
+| Modello | Accuracy | Precision | Recall (Sensibilità) | F1-Score | ROC-AUC |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Logistic Regression** | **0.803** | 0.800 | **0.848** | **0.824** | **0.870** |
+| **Random Forest** | 0.754 | 0.765 | 0.788 | 0.776 | 0.858 |
+| **KNN (k=5)** | 0.787 | **0.812** | 0.788 | 0.800 | 0.812 |
 
-Colesterolo (`chol`, r = -0.08) e glicemia a digiuno (`fbs`, r = -0.03) non mostrano una correlazione lineare utile con il target. Le variabili legate alla risposta allo sforzo sembrano quindi più informative di un singolo valore ematico, almeno in questo campione di 302 persone.
+### 🩺 Perché la Logistic Regression è il modello migliore
+- **Priorità Clinica alla Recall (0.848)**: in ambito diagnostico, l'errore più critico è il Falso Negativo (un paziente malato classificato erroneamente come sano). La Logistic Regression intercetta quasi l'85% dei soggetti a rischio, superando nettamente Random Forest e KNN (78.8%).
+- **Capacità di Discriminazione Globale (ROC-AUC 0.870)**: il modello lineare regolarizzato separa le distribuzioni probabilistiche delle due classi meglio di algoritmi complessi, che su un campione ridotto di 302 pazienti tendono a soffrire di lieve varianza o overfitting.
+- **Interpretabilità**: consente la lettura diretta dei pesi associati ai singoli fattori di rischio.
 
-**Outlier.** Li ho tenuti: pressione fino a 200 mmHg e colesterolo fino a 564 mg/dl sono valori estremi ma plausibili dal punto di vista clinico, non sembrano errori di inserimento.
+---
 
-## Limiti
+## ⚠️ Limiti
 
-- Campione piccolo (302 pazienti), da una sola popolazione.
-- Pearson misura solo relazioni lineari e tratta come numeriche anche variabili categoriche come `cp`.
-- Correlazione non è causalità: nessuna delle associazioni qui sopra va letta come un effetto.
+- Campione ridotto (302 pazienti), derivato da una singola coorte di studio.
+- La correlazione e i pesi lineari identificano associazioni statistiche, non relazioni causali dirette.
 
-## Struttura del repository
+---
+
+## 📂 Struttura della Repository
 
 ```text
 heart-disease-eda/
 ├── data/
-│   ├── heart.csv                  # dataset grezzo (Kaggle)
-│   └── heart_cleaned.csv          # dataset pulito, 302 record unici
+│   ├── heart.csv                  # Dataset grezzo iniziale (Kaggle)
+│   └── heart_cleaned.csv          # Dataset deduplicato e pulito (302 righe)
 ├── notebooks/
-│   └── 01_eda_and_cleaning.ipynb  # pulizia e visualizzazioni
-├── .gitignore                     # esclude .idea e virtualenv
-├── README.md
-└── requirements.txt               # dipendenze
+│   ├── 01_eda_and_cleaning.ipynb  # Pulizia, gestione outlier ed EDA
+│   └── 02_classification_models.ipynb # Preprocessing anti-leakage e benchmark modelli
+├── .gitignore                     # Esclusione cache, .idea e virtualenv
+├── LICENSE                        # Licenza MIT
+├── README.md                      # Documentazione del progetto
+└── requirements.txt               # Dipendenze d'ambiente
 ```
-## Setup e Riproducibilità
 
+## Setup e Riproducibilità
 Clonare la repository:
 ```bash
 git clone https://github.com/JCicconi-31/heart-disease-eda.git
@@ -72,6 +83,3 @@ source .venv/bin/activate
 Installare le dipendenze:
 ```bash
 pip install -r requirements.txt
-```
-
-Eseguire l'analisi: Aprire ed eseguire il notebook ```notebooks/01_eda_and_cleaning.ipynb``` con PyCharm o Jupyter
