@@ -19,22 +19,33 @@ L'obiettivo è duplice: verificare l'integrità del dato eliminando artefatti di
    - Standardizzazione delle feature continue (`StandardScaler`) calcolata rigorosamente solo sul training set per prevenire Data Leakage.
    - Addestramento e confronto tra tre algoritmi: *Logistic Regression*, *Random Forest* e *K-Nearest Neighbors (KNN)*.
 
+3. **Notebook 03 - Hyperparameter Tuning & Stratified CV**:
+   - Implementazione di **Stratified 5-Fold Cross-Validation** e `Pipeline` di Scikit-Learn per evitare Data Leakage nei fold.
+   - Ottimizzazione degli iperparametri della *Logistic Regression* tramite `GridSearchCV` orientata espressamente a massimizzare la metrica di **Recall** (`scoring='recall'`).
+   - Selezione della regolarizzazione $L_1$ (Lasso) con $C = 0.001$, riducendo i Falsi Negativi.
+
 ---
 
 ## 📊 Risultati e Confronto Modelli
 
-### Prestazioni sul Test Set (20% del campione)
+### Baseline (Notebook 02 - Test Set 20%)
 
 | Modello | Accuracy | Precision | Recall (Sensibilità) | F1-Score | ROC-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Logistic Regression** | **0.803** | 0.800 | **0.848** | **0.824** | **0.870** |
+| **Logistic Regression (Baseline)** | **0.803** | 0.800 | **0.848** | **0.824** | **0.870** |
 | **Random Forest** | 0.754 | 0.765 | 0.788 | 0.776 | 0.858 |
 | **KNN (k=5)** | 0.787 | **0.812** | 0.788 | 0.800 | 0.812 |
 
-### 🩺 Perché la Logistic Regression è il modello migliore
-- **Priorità Clinica alla Recall (0.848)**: in ambito diagnostico, l'errore più critico è il Falso Negativo (un paziente malato classificato erroneamente come sano). La Logistic Regression intercetta quasi l'85% dei soggetti a rischio, superando nettamente Random Forest e KNN (78.8%).
-- **Capacità di Discriminazione Globale (ROC-AUC 0.870)**: il modello lineare regolarizzato separa le distribuzioni probabilistiche delle due classi meglio di algoritmi complessi, che su un campione ridotto di 302 pazienti tendono a soffrire di lieve varianza o overfitting.
-- **Interpretabilità**: consente la lettura diretta dei pesi associati ai singoli fattori di rischio.
+### Modello Ottimizzato (Notebook 03 - Test Set 20%)
+
+| Modello | Accuracy | Recall (Sensibilità) | ROC-AUC | Note |
+| :--- | :---: | :---: | :---: | :--- |
+| **Logistic Regression (Ottimizzata)** | 0.754 | **0.939** | **0.870** | **+9.1% di Recall** rispetto al baseline |
+
+### 🩺 Perché la Logistic Regression Ottimizzata è il modello migliore
+- **Priorità Clinica alla Recall (0.939)**: in ambito diagnostico, l'errore più critico è il Falso Negativo (un paziente malato classificato erroneamente come sano). Con la ricerca guidata su `scoring='recall'`, la Logistic Regression intercetta quasi il **94%** dei soggetti a rischio (rispetto all'84.8% del baseline).
+- **Trade-off consapevole**: l'Accuracy passa dall'80.3% al 75.4%, accettando un lieve incremento di Falsi Positivi pur di abbattere drasticamente i Falsi Negativi.
+- **Interpretabilità**: la regolarizzazione $L_1$ isola le variabili a maggiore impatto predittivo.
 
 ---
 
@@ -54,13 +65,12 @@ heart-disease-eda/
 │   └── heart_cleaned.csv          # Dataset deduplicato e pulito (302 righe)
 ├── notebooks/
 │   ├── 01_eda_and_cleaning.ipynb  # Pulizia, gestione outlier ed EDA
-│   └── 02_classification_models.ipynb # Preprocessing anti-leakage e benchmark modelli
+│   ├── 02_classification_models.ipynb # Preprocessing anti-leakage e benchmark modelli
+│   └── 03_hyperparameter_tuning.ipynb # Stratified 5-Fold CV e GridSearchCV guidata su Recall
 ├── .gitignore                     # Esclusione cache, .idea e virtualenv
 ├── LICENSE                        # Licenza MIT
 ├── README.md                      # Documentazione del progetto
 └── requirements.txt               # Dipendenze d'ambiente
-```
-
 ## Setup e Riproducibilità
 Clonare la repository:
 ```bash
